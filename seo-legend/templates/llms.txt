@@ -1,0 +1,177 @@
+# llms.txt template (v2)
+
+`llms.txt` is a **community proposal** by Jeremy Howard / Answer.AI, first
+published in 2024 and revised to v2 in 2026. It is **not** a W3C/IETF standard
+and **not** a confirmed ranking factor. No AI system guarantees it reads the
+file. Publishing one does not improve rankings by itself.
+
+Use it to give agents a concise, curated map of your best content.
+
+---
+
+## 1. Minimal valid file
+
+```markdown
+# Example Ltd
+
+> UK ecommerce engineering studio building Shopify and Magento platforms.
+
+Example Ltd designs, builds, and supports commerce platforms for UK retailers.
+We publish technical guides, migration checklists, and platform comparisons.
+
+## Services
+
+- [Technical SEO](https://www.example.com/services/technical-seo.md): audits, fixes, and monitoring for commerce sites.
+- [Platform migration](https://www.example.com/services/migration.md): replatforming without traffic loss.
+- [Shopify development](https://www.example.com/services/shopify.md): theme, app, and checkout work.
+
+## Guides
+
+- [SEO migration checklist](https://www.example.com/guides/seo-migration-checklist.md): URL mapping, redirects, and launch monitoring.
+- [Core Web Vitals for ecommerce](https://www.example.com/guides/core-web-vitals-ecommerce.md): LCP, INP, and CLS fixes by template.
+
+## Company
+
+- [About](https://www.example.com/about.md)
+- [Contact](https://www.example.com/contact.md)
+
+## Optional
+
+- [Case studies](https://www.example.com/case-studies.md)
+- [Careers](https://www.example.com/careers.md)
+```
+
+## 2. Format rules (v2)
+
+- File name: `llms.txt`, at the site root or any subpath.
+- Markdown, UTF-8, optional BOM.
+- **Required:** exactly one H1 with the site/project name.
+- **Recommended:** a blockquote summary immediately after the H1.
+- Optional prose sections. Only H2 headings are used to group file lists.
+- H2 sections contain markdown lists of links:
+  `- [Title](https://example.com/page.md): optional note`
+- `## Optional` is conventional for secondary links agents can skip.
+- Links should be canonical, live, and useful.
+- Keep it small enough to fit in a context window; detail lives behind links.
+- Do not dump the entire site, keyword lists, or marketing fluff.
+- Keep it current; stale links erode trust.
+
+## 3. Markdown mirrors
+
+v2 recommends clean markdown versions of pages:
+
+- `page.html.md` (append `.md`) or `page.md` (replace extension).
+- Directory URLs: `index.html.md` or `index.md`.
+- The markdown must match the HTML content (same facts, dates, prices).
+
+Advertise mirrors in HTML:
+
+```html
+<link rel="alternate" type="text/markdown" href="/page.html.md" />
+<link rel="describedby" href="/llms.txt" />
+```
+
+Or via HTTP header:
+
+```http
+Link: </page.html.md>; rel="alternate"; type="text/markdown", </llms.txt>; rel="describedby"
+```
+
+Do not create mirrors that are thin, outdated, or different in substance from
+the HTML page — that is cloaking-adjacent and erodes trust.
+
+## 4. Placement and serving
+
+| Setup | Where |
+| --- | --- |
+| Static site | `public/llms.txt` → `/llms.txt` |
+| Next.js App Router | `app/llms.txt/route.ts` (plain text) or `public/llms.txt` |
+| WordPress | Root file via hosting; some SEO plugins add support |
+| CDN | Serve from origin; do not rewrite to HTML |
+
+Next.js route example:
+
+```ts
+// app/llms.txt/route.ts
+export const dynamic = "force-static";
+
+const body = `# Example Ltd
+
+> UK ecommerce engineering studio building Shopify and Magento platforms.
+
+## Services
+
+- [Technical SEO](https://www.example.com/services/technical-seo.md): audits, fixes, and monitoring.
+`;
+
+export function GET() {
+  return new Response(body, {
+    headers: {
+      "content-type": "text/plain; charset=utf-8",
+      "cache-control": "public, max-age=3600",
+    },
+  });
+}
+```
+
+Verify:
+
+```bash
+curl -sI https://www.example.com/llms.txt
+curl -s https://www.example.com/llms.txt
+```
+
+Expected: `200`, `text/plain`, starts with exactly one `# ` line.
+
+## 5. Content selection
+
+Include:
+
+- Primary services/products with one-line descriptions.
+- Best guides, docs, and references.
+- Company/about/contact.
+- Policies that matter to agents (pricing, licensing, returns).
+- `## Optional` for secondary material.
+
+Exclude:
+
+- Duplicates and near-duplicates.
+- Thin tag/archive/search pages.
+- Pages behind login or geo-blocks.
+- Anything you would not want quoted or cited.
+- Keyword lists and internal notes.
+
+## 6. Relationship to other files
+
+| File | Purpose | Controls |
+| --- | --- | --- |
+| `robots.txt` | Crawler access policy | What may be fetched |
+| `sitemap.xml` | Full URL inventory | What exists |
+| `llms.txt` | Curated map for agents | What is worth reading |
+| Markdown mirrors | Clean content for agents | How to read it |
+
+They must not contradict each other. A URL in `llms.txt` should be crawlable,
+canonical, and live.
+
+## 7. Validation checklist
+
+- [ ] `200`, `text/plain`, UTF-8.
+- [ ] Exactly one H1.
+- [ ] Blockquote summary after the H1 (recommended).
+- [ ] Only H2 headings group lists.
+- [ ] Every link is absolute, canonical, and returns 200.
+- [ ] Markdown mirrors exist and match HTML.
+- [ ] `## Optional` used for secondary links.
+- [ ] File is current (reviewed date recorded).
+- [ ] No claim that `llms.txt` guarantees citations or rankings.
+- [ ] `robots.txt` does not block the file or the linked pages.
+- [ ] Sitemap and `llms.txt` agree on canonical URLs.
+
+## 8. Honest reporting
+
+When reporting AI-search work:
+
+- Say "published/updated `llms.txt` v2" — not "improved AI rankings".
+- Measure referral traffic from AI surfaces and citation sampling separately.
+- Record the date, prompt, and surface for any citation observation.
+- Do not claim causation from a single change.

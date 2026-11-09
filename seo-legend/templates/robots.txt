@@ -1,0 +1,220 @@
+# robots.txt templates
+
+`robots.txt` controls **crawling**, not indexing. It is not a security control
+and it does not remove a URL from the index. Serve it at the host root over
+HTTPS, `200`, `text/plain`.
+
+---
+
+## 1. Production baseline
+
+```txt
+# robots.txt — https://www.example.com
+# Owner: <team> · Last reviewed: YYYY-MM-DD
+
+User-agent: *
+Allow: /
+
+# Never block assets needed to render pages.
+Allow: /_next/static/
+Allow: /static/
+Allow: /assets/
+
+# Low-value crawl spaces (optional; only if they are truly not needed).
+Disallow: /search
+Disallow: /cart
+Disallow: /checkout
+Disallow: /account/
+Disallow: /api/
+
+Sitemap: https://www.example.com/sitemap.xml
+```
+
+Rules:
+
+- Do not add `Disallow: /` unless you intend to remove the site from search.
+- Do not block CSS/JS/images/fonts; Google needs them to render.
+- Do not use `noindex` in robots.txt — it is unsupported and ignored.
+- Do not block a URL that is still linked and should rank; blocked URLs cannot
+  pass canonical signals.
+- `Crawl-delay` is ignored by Google. Use server rate limits instead.
+- One canonical host serves robots.txt; redirect the others at the server.
+- Keep staging/preview hosts blocked or, better, password-protected.
+
+## 2. Staging / preview
+
+```txt
+# STAGING — must never be indexed.
+User-agent: *
+Disallow: /
+```
+
+Also set `X-Robots-Tag: noindex, nofollow` on the whole staging host and require
+authentication. robots.txt alone is not enough (a determined crawler can ignore
+it, and the file itself can be missing behind a proxy).
+
+## 3. AI crawler policy
+
+Decide per crawler. Document the business/legal reason. Do not copy a policy
+blindly.
+
+### Option A — allow search + user-initiated retrieval, block training
+
+```txt
+# Search engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# User-initiated AI retrieval (cited answers)
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Claude-User
+Allow: /
+
+# Model training crawlers (business decision)
+User-agent: GPTBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+Sitemap: https://www.example.com/sitemap.xml
+```
+
+### Option B — allow everything
+
+```txt
+User-agent: *
+Allow: /
+
+Sitemap: https://www.example.com/sitemap.xml
+```
+
+### Option C — block all AI crawlers
+
+```txt
+User-agent: GPTBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+User-agent: *
+Allow: /
+```
+
+Notes:
+
+- `Google-Extended` controls Gemini training/grounding usage, **not** Google
+  Search crawling. Blocking it does not remove you from Search.
+- `GPTBot` is OpenAI's training crawler; `ChatGPT-User` is user-triggered.
+- `robots.txt` is voluntary. Terms of service and server-side controls are
+  separate.
+- Blocking retrieval bots reduces the chance of being cited in AI answers.
+- Never serve different content to AI crawlers than to users (cloaking).
+
+## 4. Next.js App Router
+
+```ts
+// app/robots.ts
+import type { MetadataRoute } from "next";
+
+const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.example.com";
+
+export default function robots(): MetadataRoute.Robots {
+  return {
+    rules: [
+      { userAgent: "*", allow: "/", disallow: ["/api/", "/account/"] },
+      { userAgent: "GPTBot", disallow: "/" },
+      { userAgent: "Google-Extended", disallow: "/" },
+    ],
+    sitemap: `${SITE}/sitemap.xml`,
+    host: SITE,
+  };
+}
+```
+
+Environment-aware variant:
+
+```ts
+const isProduction = process.env.VERCEL_ENV === "production" ||
+  process.env.NODE_ENV === "production";
+
+export default function robots(): MetadataRoute.Robots {
+  if (!isProduction) {
+    return { rules: [{ userAgent: "*", disallow: "/" }] };
+  }
+  return { /* production rules */ };
+}
+```
+
+Verify the generated file at `/robots.txt` after build; do not assume.
+
+## 5. Apache / NGINX serving notes
+
+- Ensure the proxy does not turn `/robots.txt` into the SPA fallback (`200`
+  HTML). Serve the real file or proxy it to the app's route.
+- Do not cache one environment's robots.txt at the CDN edge for another host.
+- If behind a CDN, purge robots.txt after changes.
+- Return `404` if the file genuinely does not exist; do not return an HTML page.
+
+## 6. Verification
+
+```bash
+# Status + content type
+curl -sI https://www.example.com/robots.txt
+
+# Body
+curl -s https://www.example.com/robots.txt
+
+# Follow redirects and confirm final host
+curl -sL -o /dev/null -w '%{http_code} %{url_effective}\n' https://example.com/robots.txt
+
+# Check a specific path against the live file in GSC → robots.txt report
+```
+
+Checklist:
+
+- [ ] `200`, `text/plain`, no HTML wrapper.
+- [ ] No `Disallow: /` on production.
+- [ ] Sitemap absolute HTTPS and reachable.
+- [ ] Assets not blocked.
+- [ ] Staging blocked/protected.
+- [ ] AI policy matches the documented decision.
+- [ ] File is consistent across CDN edges.
+- [ ] GSC robots.txt report shows the expected rules.
+
+## 7. Common mistakes
+
+| Mistake | Effect |
+| --- | --- |
+| `Disallow: /` left from staging | Whole site drops out |
+| Blocking `*.js` / `*.css` | Rendering failures, weaker indexing |
+| Blocking `/search` but linking it | Crawl waste, confusing signals |
+| Using robots.txt for `noindex` | Ignored; page can still be indexed |
+| Blocking facet URLs that need canonicals | Signals cannot be seen |
+| Different robots.txt per edge | Non-deterministic crawling |
+| Missing sitemap reference | Slower discovery (not fatal) |
+| `Crawl-delay` for Google | Ignored; no effect |

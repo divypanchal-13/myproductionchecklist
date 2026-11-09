@@ -1,0 +1,185 @@
+# Migrations
+
+Most SEO disasters are migrations. The plan matters more than the platform.
+
+---
+
+## 1. Migration types
+
+| Type | Risk | Examples |
+| --- | --- | --- |
+| Domain change | Very high | rebrand, `.co.uk` → `.com` |
+| Protocol | High | HTTP → HTTPS |
+| URL structure | High | `/p/123` → `/products/slug` |
+| Platform/CMS | High | WordPress → Next.js, Magento → Shopify |
+| Design/template | Medium | new header/footer, metadata changes |
+| Language/market | High | new locale, hreflang cluster |
+| Content consolidation | Medium | merging pages, 301s |
+| Hosting/CDN | Medium | origin change, WAF rules |
+
+---
+
+## 2. Pre-migration (2–6 weeks before)
+
+- [ ] Freeze non-essential URL/content changes.
+- [ ] Crawl the current site; export all URLs, status codes, canonical, titles,
+      descriptions, H1s, sitemap, robots.
+- [ ] Export GSC: Pages, Performance (16 months), Sitemaps, CWV, Enhancements.
+- [ ] Export Bing data.
+- [ ] Export analytics landing pages and conversions.
+- [ ] Inventory backlinks and top-linked URLs.
+- [ ] Build a complete URL map (old → new).
+- [ ] Decide redirect types and query-string handling.
+- [ ] Prepare staging with `noindex` and password protection.
+- [ ] Write a rollback plan (DNS/CDN/repo).
+- [ ] Agree a launch window and monitoring owner.
+- [ ] Set up uptime/error monitoring and log access.
+
+### 2.1 URL map
+
+| Old | New | Type | Query handling | Owner | Checked |
+| --- | --- | --- | --- | --- | --- |
+| `/old` | `/new` | 301 | preserve | | ☐ |
+
+Rules:
+
+- Every old URL must map to the closest equivalent, not the homepage.
+- One hop only.
+- No redirect to a redirect.
+- No redirect to a 404.
+- Keep high-value backlink URLs alive.
+- Handle trailing slash/case consistently.
+- Remove redirected URLs from the new sitemap.
+
+---
+
+## 3. Build and staging
+
+- [ ] Staging is `noindex` via meta + header + robots.txt, and password-protected.
+- [ ] Staging canonical must **not** point to production unless intentional.
+- [ ] Analytics disabled on staging.
+- [ ] Test redirects on staging with the production host header.
+- [ ] Verify 404 page returns 404.
+- [ ] Verify sitemap contains only new canonical URLs.
+- [ ] Verify robots.txt production rules.
+- [ ] Run the audit script against staging with `--site=production`.
+- [ ] Check mobile, CWV, and consent on staging.
+
+---
+
+## 4. Launch day
+
+1. Deploy the new site.
+2. Verify DNS/CDN and TLS.
+3. Check `robots.txt` is production-safe.
+4. Check sitemap is live and correct.
+5. Spot-check top 20 URLs and all redirects.
+6. Submit the new sitemap in GSC/Bing.
+7. Request indexing for key URLs (URL Inspection).
+8. Monitor 5xx/404/redirect rates for the first 24 hours.
+9. Confirm analytics/consent still work.
+10. Announce internally; no other changes during the watch window.
+
+Do not:
+
+- Launch on a Friday without monitoring.
+- Change DNS, URLs, and templates simultaneously if avoidable.
+- Leave staging accessible/indexable.
+- Forget `www`/HTTPS canonicalisation.
+- Delete the old sitemap before the new one is verified.
+
+---
+
+## 5. Post-launch (first 6 weeks)
+
+### Day 1–3
+
+- [ ] Crawl the new site; compare with the old map.
+- [ ] Check GSC coverage/indexing errors.
+- [ ] Check 404s in logs; add missing redirects.
+- [ ] Confirm sitemap discovery.
+- [ ] Verify key rankings/traffic did not collapse.
+- [ ] Check internal links to old URLs.
+
+### Week 1–2
+
+- [ ] Review GSC Pages report for "Not found (404)" and "Redirect error".
+- [ ] Fix redirect chains/loops.
+- [ ] Compare indexed count trend.
+- [ ] Review CWV/enhancements.
+- [ ] Check backlink targets still resolve.
+- [ ] Update external profiles/ads with new URLs.
+
+### Week 3–6
+
+- [ ] Re-run full audit.
+- [ ] Compare traffic/conversions to baseline with seasonality context.
+- [ ] Consolidate/redirect remaining low-value URLs.
+- [ ] Remove temporary redirects.
+- [ ] Document lessons and update the runbook.
+
+---
+
+## 6. Domain changes
+
+Extra steps:
+
+- Verify the new domain in GSC/Bing before launch.
+- Set up 301s from every old URL to the equivalent new URL.
+- Keep the old domain registered and redirected for at least a year.
+- Update `NEXT_PUBLIC_SITE_URL`/canonical host/sitemap/robots.
+- Update `sameAs`, Organization schema, ads, email, and social profiles.
+- Use the Change of Address tool in GSC (old property).
+- Monitor the old domain's traffic and 404s.
+- Do not use a domain that has a spammy history without due diligence.
+
+---
+
+## 7. Platform migrations
+
+- Preserve URL paths where possible; if not, map every URL.
+- Recreate metadata templates, not just content.
+- Recreate structured data and validate it.
+- Recreate redirects at the edge/server, not only in the CMS.
+- Recreate sitemap/robots generation.
+- Recreate analytics/consent.
+- Test rendering (SSR/CSR differences).
+- Test pagination/facets/search.
+- Check image URLs and CDN paths.
+- Check internal links generated by the new templates.
+- Run a full crawl before and after.
+
+---
+
+## 8. Common failure modes
+
+| Failure | Result | Prevention |
+| --- | --- | --- |
+| Redirect everything to home | Soft-404/doorway signals | 1:1 mapping |
+| Redirect chains | Crawl waste, lost equity | Single-hop tests |
+| Old sitemap left live | Wrong URLs indexed | Regenerate + submit |
+| `noindex` left on production | Deindexing | Launch checklist |
+| Staging indexed | Duplicate/hacked-looking results | Auth + noindex |
+| Canonical points to old domain | New URLs not indexed | Template audit |
+| robots.txt blocks assets | Rendering failures | Test with GSC |
+| Metadata templates lost | Traffic/CTR loss | Parity checks |
+| Analytics/consent broken | Blind measurement | QA matrix |
+| No rollback | Extended outage | DNS/repo rollback plan |
+
+---
+
+## 9. Migration acceptance checks
+
+- [ ] Complete URL map with 1:1 closest equivalents.
+- [ ] All redirects single-hop, no loops, targets 200.
+- [ ] Production robots.txt is correct.
+- [ ] New sitemap submitted; old removed.
+- [ ] Staging is inaccessible and `noindex`.
+- [ ] Canonicals/metadata/schema recreated and validated.
+- [ ] Analytics/consent re-tested.
+- [ ] GSC/Bing show no unresolved critical errors.
+- [ ] 404/5xx rates back to baseline.
+- [ ] Top URLs retain traffic within an agreed tolerance.
+- [ ] Backlink targets resolve.
+- [ ] Rollback documented and tested.
+- [ ] Before/after evidence archived.
